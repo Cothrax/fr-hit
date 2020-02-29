@@ -1,10 +1,10 @@
 CC=g++
 
-#FLAGS= -ggdb -pg -O3 -static
+FLAGS= -ggdb -pg -static -fsanitize=undefined
 #FLAGS=-O3 -static -fopenmp
-FLAGS=-O3 -fopenmp
+#FLAGS=-O3 -fopenmp
 
-SOURCE = align refseq frhit param reads utilities 
+SOURCE = align refseq frhit param reads utilities stat
 OBJS= $(patsubst %,%.o,$(SOURCE))
 
 all: fr-hit
