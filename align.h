@@ -40,6 +40,8 @@
 #include "refseq.h"
 #include "utilities.h"
 
+#include "stat.h"
+
 //#define DEBUG
 
 using namespace std;
@@ -160,11 +162,13 @@ struct MerSort
         qgrams = 0;
         bandleft = 0;
         bandright = 0;
+        hit_id = 0;
     } 
     
     ref_id_t chr;
     ref_loc_t _end;
     ref_loc_t _begin;
+    bit64_t hit_id;
 
     int qgrams;
 
