@@ -32,8 +32,7 @@
 
 #include "align.h"
 #include "stat.h"
-StatIO stat_io("", "");
-//StatIO stat_io;
+StatIO stat_io;
 
 using namespace std;
 
