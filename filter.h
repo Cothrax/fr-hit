@@ -8,6 +8,30 @@
 #include "param.h"
 typedef bit32_t lshv_t;
 
+class ProjectionGenerator
+{
+protected:
+    void compress_vector();
+
+public:
+    int _k, _nbits, total;
+    int **vec, **pos, **neg;
+
+    ProjectionGenerator(int k, int nbits);
+    virtual ~ProjectionGenerator();
+    virtual void generate() = 0;
+    virtual void dump(const char *filename);
+};
+
+class RandomProjectionGenerator: public ProjectionGenerator
+{
+public:
+    int _density;
+    RandomProjectionGenerator(int k, int nbits, int density): _density(density), ProjectionGenerator(k, nbits) {}
+    void rand_proj(int seed, int *a_vec);
+    virtual void  generate();
+};
+
 class LSHFilter
 {
 protected:
@@ -30,20 +54,16 @@ protected:
 
 public:
     int k, nbits, total, nkmer, _seed_size, frag_len;
-    LSHFilter(int seed_size = 11);
+    explicit LSHFilter(int seed_size = 11);
     ~LSHFilter();
     void load_projection(const char *filename);
+    void load_projection(ProjectionGenerator &generator);
     lshv_t lsh(char *seq, int seq_len);
     void calc_all_lsh(char *seq, int seq_len, lshv_t *res);
     void calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res);
 };
 
 class RefLSHHolder
-{
-
-};
-
-class ProjectionGenerator
 {
 
 };
