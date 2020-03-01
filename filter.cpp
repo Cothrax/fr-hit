@@ -6,6 +6,10 @@
 #include<fstream>
 #include<cstring>
 #include<iostream>
+#include<cstdio>
+#include<random>
+
+// -------------------- LSHFilter --------------------
 
 LSHFilter::LSHFilter(int seed_size)
 {
@@ -62,6 +66,15 @@ void LSHFilter::load_projection(const char *filename)
     fin.close();
 }
 
+void LSHFilter::load_projection(ProjectionGenerator &generator)
+{
+    char filename[100];
+    sprintf(filename, "tmp%d.dat", int(time(0)));
+    generator.dump(filename);
+    load_projection(filename);
+    remove(filename);
+}
+
 lshv_t LSHFilter::lsh(char *seq, int seq_len)
 {
     int len = strlen(seq);
@@ -86,19 +99,18 @@ lshv_t LSHFilter::lsh(char *seq, int seq_len)
 
 void LSHFilter::calc_all_lsh(char *seq, int seq_len, lshv_t *res)
 {
-    int key = 0;
-    for(int j = 0; j < k; j++) key = (key<<2) | dict[seq[j]];
-
+    int key = 0, rbound = seq_len - (_seed_size<<1), p;
     int vec[nkmer], acc[nbits];
+
     memset(acc, 0, sizeof(acc));
+    for(int j = 0; j < k; j++) key = (key<<2) | dict[seq[j]];
     // memset(vec, -1, sizeof(vec));
     // printf("nkmer %d\n", nkmer);
 
     res[k-2] = ((bit64_t)1<<nbits)-1;
     for(int i = k-1; i < seq_len; i++)
     {
-        printf("key: %d\n", key);
-        int p = i%nkmer;
+        p = i%nkmer;
         res[i] = res[i-1];
         if(i >= frag_len) update_inverse(acc, vec[p], res[i]);
         update(acc, vec[p] = key, res[i]);
@@ -106,7 +118,7 @@ void LSHFilter::calc_all_lsh(char *seq, int seq_len, lshv_t *res)
         key = (key<<2) | dict[seq[i+1]];
     }
 
-    int rbound = seq_len - (_seed_size<<1);
+
     for(int i = 0; i < seq_len; i++)
         if(i < _seed_size) res[i] = res[frag_len-1];
         else if(i > rbound) res[i] = res[rbound];
@@ -152,6 +164,87 @@ void LSHFilter::calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res)
     if(seq_len % seed_step) res[cnt++] = val;
 }
 
+// -------------------- ProjectionGenerator --------------------
+ProjectionGenerator::ProjectionGenerator(int k, int nbits)
+{
+    _k = k;
+    _nbits = nbits;
+    total = 1<<(k<<1);
+    vec = pos = neg = nullptr;
+}
+
+ProjectionGenerator::~ProjectionGenerator()
+{
+    int ** tmp[3] = {vec, pos, neg};
+    for(int j = 0; j < 3; j++)
+        if(tmp[j])
+        {
+            for(int i = 0; i < total; i++) delete [] tmp[j][i];
+            delete [] tmp[j];
+        }
+}
+
+void ProjectionGenerator::dump(const char *filename)
+{
+    if(!pos || !neg) compress_vector();
+
+    using std::ofstream;
+    using std::ios_base;
+    ofstream fout(filename, ios_base::binary | ios_base::out);
+    fout.write((char *) &_nbits, sizeof(_nbits));
+    fout.write((char *) &_k, sizeof(_k));
+    for(int i = 0; i < total; i++)
+    {
+        for(int j = 0; j <= pos[i][0]; j++) fout.write((char *) &pos[i][j], sizeof(pos[i][j]));
+        for(int j = 0; j <= neg[i][0]; j++) fout.write((char *) &neg[i][j], sizeof(neg[i][j]));
+    }
+    fout.close();
+}
+
+void ProjectionGenerator::compress_vector()
+{
+    if(!vec) generate();
+//    if(pos) delete [] pos;
+//    if(neg) delete [] neg;
+    pos = new int * [total];
+    neg = new int * [total];
+
+    for(int i = 0; i < total; i++)
+    {
+        int count[3] = {0, 0, 0};
+        for(int j = 0; j < _nbits; j++) count[vec[i][j]+1]++;
+        pos[i] = new int[count[2]+1];
+        neg[i] = new int[count[0]+1];
+        pos[i][0] = neg[i][0] = 0;
+        for(int j = 0; j < _nbits; j++)
+            if(vec[i][j] == -1) neg[i][++neg[i][0]] = j;
+            else if(vec[i][j] == 1) pos[i][++pos[i][0]] = j;
+    }
+}
+
+// -------------------- RandomProjectionGenerator --------------------
+void RandomProjectionGenerator::rand_proj(int seed, int *a_vec)
+{
+    using std::mt19937;
+    mt19937 rng32(seed);
+    for (int i = 0; i < _nbits; i++) {
+        int cur = rng32() % _density;
+        if (cur == 0) a_vec[i] = 1;
+        else if (cur == 1) a_vec[i] = -1;
+        else a_vec[i] = 0;
+    }
+}
+
+void RandomProjectionGenerator::generate()
+{
+    vec = new int * [total];
+    for(int i = 0; i < total; i++)
+    {
+        vec[i] = new int [_nbits];
+        rand_proj(i, vec[i]);
+    }
+}
+
 /*
 inline void debug()
 {
@@ -175,6 +268,24 @@ inline void debug()
             if(i % seed_step == 0 || i + 1 == len) cout << '\t' << res3[j++];
             cout << endl;
         }
+    }
+}
+ */
+/*
+void debug()
+{
+    using namespace std;
+    RandomProjectionGenerator generator(4, 32, 6);
+    generator.dump("/media/cothrax/Elements/proj_rand.dat");
+    LSHFilter filter;
+    filter.load_projection(generator);
+    char s[1000];
+    lshv_t res[1000];
+    while(1)
+    {
+        scanf("%s", s);
+        filter.calc_all_lsh(s, strlen(s), res);
+        for(int i = 0; i < strlen(s); i++) cout << i << '\t' << res[i] << endl;
     }
 }
 
