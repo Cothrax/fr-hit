@@ -3,7 +3,8 @@
 //
 
 #include "stat.h"
-#include <algorithm>
+#include<algorithm>
+#include<cmath>
 using namespace std;
 //char _seq[700000000];
 
@@ -67,6 +68,17 @@ void StatIO::flush(bit64_t batch_size)
 {
     write(fout_hit, hit_vec, batch_size);
     write(fout_match, match_vec, match_vec.size());
+
+//    int ofs = 0;
+//    for(int j = 0; j < match_size.size(); j++)
+//    {
+//        fout.write((char *) &match_size[i], sizeof(match_size[i]));
+//        for(int i = 0; i < match_size[j]; i++)
+//        {
+//            fout.write((char *) &match_vec[i].first, sizeof(match_vec[i].first));
+//            fout.write((char *) &match_vec[i].second, sizeof(match_vec[i].second));
+//        }
+//    }
 //    for(int i = 0; i < match_vec.size(); i++) cout << "match: " << match_vec[i].first << " " << match_vec[i].second << endl;
 
     for(int i = 0; i < hit_history.size(); i++) hit_history[i].resize(0);
@@ -183,6 +195,27 @@ void DataHolder::get(char *res, ref_id_t id, ref_loc_t loc, bool if_reversed)
     }
 }
 
+int DataHolder::get_hollow(char *res, ref_id_t id, ref_loc_t loc, bool if_reversed)
+{
+//    cout << "in get: " << id << " " << loc << " " << if_reversed << endl;
+    if(if_reversed)
+    {
+        loc = len[id] - 1 - loc;
+        int lower = max(0, (int)loc - 2 * _seed_size + 1);
+        int upper = min(len[id], (bit64_t)loc + _seed_size + 1);
+        get2(res, id, lower, upper);
+        comp_reverse(res);
+    }
+    else
+    {
+        int lower = max(0, (int)loc - _seed_size);
+        int upper = min(len[id], (bit64_t)loc + 2 * _seed_size);
+        get2(res, id, lower, upper);
+    }
+
+    return loc < _seed_size ? loc : _seed_size;
+}
+
 // --------------------------------- StatConverter ---------------------------------
 StatConverter::StatConverter(const char *filename)
 {
@@ -222,6 +255,31 @@ void StatConverter::convert(DataHolder &ref, DataHolder &reads, const char *outp
 //        cout << reads_seq << " " << ref_seq << endl;
         fout << reads_seq << " " << ref_seq << endl;
 
+    }
+    fout.close();
+}
+
+void StatConverter::convert_hollow(DataHolder &ref, DataHolder &reads, const char *output_fn)
+{
+    ofstream fout(output_fn);
+    bit64_t read_val, ref_val;
+    char *ref_seq = new char[ref._seed_size*3 + 10];
+    char *reads_seq = new char[reads._seed_size*3 + 10];
+    bool if_reversed;
+    ref_id_t id;
+    ref_loc_t loc;
+
+    while(next_pair(read_val, ref_val))
+    {
+//        cout << read_val << "\t" << ref_val << endl;
+        inv_transform(read_val, id, loc, if_reversed);
+        int ofs1 = reads.get_hollow(reads_seq, id, loc, if_reversed);
+        inv_transform(ref_val, id, loc, if_reversed);
+        int ofs2 = ref.get_hollow(ref_seq, id, loc, if_reversed);
+
+//        cout << reads_seq << " " << ref_seq << endl;
+        fout << ofs1 << " " << ofs2 << endl;
+        fout << reads_seq << " " << ref_seq << endl;
     }
     fout.close();
 }

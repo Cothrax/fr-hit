@@ -33,6 +33,7 @@ public:
 //    vector<bit64_t> read_info;
     bit64_t _if_reversed, _read_id;
     StatVector hit_vec, match_vec;
+//    vector<int> match_size;
     vector<vector<int> > hit_history;
     int *sort_index;
     vector<int> *Ahit;
@@ -54,6 +55,7 @@ public:
     }
     void push_back_match(int cand_id)
     {
+//        match_size.push_back(hit_history[cand_id].size());
         for(int i = 0; i < hit_history[cand_id].size(); i++) match_vec.push_back(hit_vec[hit_history[cand_id][i]]);
     }
     void push_back_vector()
@@ -80,6 +82,7 @@ public:
     void get_len(const char *filename, int size);
     void load(const char *filename, int size = -1);
     void get(char *res, ref_id_t id, ref_loc_t loc, bool if_reversed);
+    int get_hollow(char *res, ref_id_t id, ref_loc_t loc, bool if_reversed);
     void get2(char *res, ref_id_t id, ref_loc_t start, ref_loc_t end);
 };
 
@@ -92,6 +95,8 @@ public:
     ~StatConverter();
     bool next_pair(bit64_t &read_val, bit64_t &ref_val);
     void convert(DataHolder &ref, DataHolder &reads, const char *output_fn);
+    void convert_verbose(DataHolder &ref, DataHolder &reads, const char *output_fn);
+    void convert_hollSow(DataHolder &ref, DataHolder &reads, const char *output_fn);
 };
 
 #endif //LIBJPEG_STAT_H

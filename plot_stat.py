@@ -33,14 +33,19 @@ def plot(matches_fn, hits_fn, fig_fn=None):
 
     plt.bar(np.arange(len(matches_std)) - width, matches_std, width=width, align='edge')
     plt.bar(np.arange(len(hits_std)) + width, hits_std, width=width, align='edge')
-    plt.plot(np.cumsum(matches) / np.sum(matches))
-    plt.plot(np.cumsum(hits) / np.sum(hits))
+
+    matches_cum = np.cumsum(matches) / np.sum(matches)
+    hits_cum = np.cumsum(hits) / np.sum(hits)
+    
+    plt.plot(matches_cum)
+    plt.plot(hits_cum)
+
+    print('preserved matches: ',
+          matches_cum[np.searchsorted(hits_cum, 0.5)])
 
     plt.savefig(fig_fn)
     plt.show()
 
-
-    
 if __name__ == '__main__':
     print('in', os.path.pardir)
     plot(*(sys.argv[1:]))
