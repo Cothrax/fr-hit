@@ -6,7 +6,7 @@
 #define LIBJPEG_FILTER_H
 
 #include "param.h"
-typedef bit32_t lshv_t;
+typedef bit64_t lshv_t;
 
 class ProjectionGenerator
 {
@@ -27,7 +27,7 @@ class RandomProjectionGenerator: public ProjectionGenerator
 {
 public:
     int _density;
-    RandomProjectionGenerator(int k, int nbits, int density): _density(density), ProjectionGenerator(k, nbits) {}
+    RandomProjectionGenerator(int k, int nbits, int density): ProjectionGenerator(k, nbits), _density(density) {}
     void rand_proj(int seed, int *a_vec);
     virtual void  generate();
 };
@@ -59,6 +59,7 @@ public:
     void load_projection(const char *filename);
     void load_projection(ProjectionGenerator &generator);
     lshv_t lsh(char *seq, int seq_len);
+    lshv_t hollow_lsh(char *seq, int seq_len, int begin);
     void calc_all_lsh(char *seq, int seq_len, lshv_t *res);
     void calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res);
 };

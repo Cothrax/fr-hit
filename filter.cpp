@@ -8,6 +8,7 @@
 #include<iostream>
 #include<cstdio>
 #include<random>
+#include<cmath>
 
 // -------------------- LSHFilter --------------------
 
@@ -162,6 +163,37 @@ void LSHFilter::calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res)
     }
 
     if(seq_len % seed_step) res[cnt++] = val;
+}
+
+lshv_t LSHFilter::hollow_lsh(char *seq, int seq_len, int begin)
+{
+    using std::max;
+    using std::min;
+    int acc[nbits];
+    memset(acc, 0, sizeof(acc));
+
+    int range[2][2] =
+            {
+                    {0, max(k, begin)},
+                    {min(seq_len-k, begin+_seed_size), seq_len}
+            };
+
+    for(int q = 0; q < 2; q++)
+    {
+        int key = 0;
+        for(int j = range[q][0]; j < range[q][0] + k; j++) key = (key<<2) | dict[seq[j]];
+        for(int i = range[q][0] + k - 1; i < range[q][1]; i++)
+        {
+            for(int j = 1; j <= pos[key][0]; j++) acc[pos[key][j]]++;
+            for(int j = 1; j <= neg[key][0]; j++) acc[neg[key][j]]--;
+            key -= dict[seq[i-k+1]]<<((k-1)<<1);
+            key = (key<<2) | dict[seq[i+1]];
+        }
+    }
+
+    lshv_t ret = 0;
+    for(int i = 0; i < nbits; i++) ret |= (lshv_t)(acc[i] >= 0) << i;
+    return ret;
 }
 
 // -------------------- ProjectionGenerator --------------------
