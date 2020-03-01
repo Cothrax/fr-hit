@@ -72,8 +72,8 @@ lshv_t LSHFilter::lsh(char *seq, int seq_len)
     memset(acc, 0, sizeof(acc));
     for(int i = k-1; i < len; i++)
     {
-        for(int j = 1; j <= pos[i][0]; j++) acc[pos[i][j]]++;
-        for(int j = 1; j <= neg[i][0]; j++) acc[neg[i][j]]--;
+        for(int j = 1; j <= pos[key][0]; j++) acc[pos[key][j]]++;
+        for(int j = 1; j <= neg[key][0]; j++) acc[neg[key][j]]--;
         key -= dict[seq[i-k+1]]<<((k-1)<<1);
         key = (key<<2) | dict[seq[i+1]];
     }
