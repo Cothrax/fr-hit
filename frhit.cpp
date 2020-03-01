@@ -27,11 +27,6 @@
 #include "frhit.h"
 
 int main(int argc, char *argv[]) {
-
-//    extern void convert_all();
-//    convert_all();
-//    return 0;
-
     try { 
         if (argc == 1) usage();
         Initial_Time();

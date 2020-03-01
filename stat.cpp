@@ -159,14 +159,14 @@ void DataHolder::load(const char *filename, int size)
 
 void DataHolder::get2(char *res, ref_id_t id, ref_loc_t start, ref_loc_t end)
 {
-    cout << "in get2: " << id << " " << start << " " << end << endl;
+//    cout << "in get2: " << id << " " << start << " " << end << endl;
     for(int i = start; i < end; i++) res[i-start] = seq[ofs[id] + i];
     res[end-start] = 0;
 }
 
 void DataHolder::get(char *res, ref_id_t id, ref_loc_t loc, bool if_reversed)
 {
-    cout << "in get: " << id << " " << loc << " " << if_reversed << endl;
+//    cout << "in get: " << id << " " << loc << " " << if_reversed << endl;
     if(if_reversed)
     {
         loc = len[id] - 1 - loc;
@@ -213,39 +213,15 @@ void StatConverter::convert(DataHolder &ref, DataHolder &reads, const char *outp
 
     while(next_pair(read_val, ref_val))
     {
-        cout << read_val << "\t" << ref_val << endl;
+//        cout << read_val << "\t" << ref_val << endl;
         inv_transform(read_val, id, loc, if_reversed);
         reads.get(reads_seq, id, loc, if_reversed);
         inv_transform(ref_val, id, loc, if_reversed);
         ref.get(ref_seq, id, loc, if_reversed);
 
-        cout << reads_seq << " " << ref_seq << endl;
+//        cout << reads_seq << " " << ref_seq << endl;
         fout << reads_seq << " " << ref_seq << endl;
 
     }
     fout.close();
 }
-
-
-void convert_all()
-{
-    DataHolder ref, reads;
-    reads.load("/home/cothrax/data/MH0006.500.fa");
-    cout << "reads:\t" << reads.seq_num << " " << reads.ofs[reads.seq_num] << endl;
-
-    ref.load("/home/cothrax/data/humangut.194.ref.genomes.fa");
-    cout << "ref:\t" << ref.seq_num << " " << ref.ofs[ref.seq_num] << endl;
-
-    StatConverter match_converter("/home/cothrax/data/matches.dat");
-//
-//    bit64_t tmp1, tmp2;
-//    match_converter.next_pair(tmp1, tmp2);
-
-
-    match_converter.convert(ref, reads, "matches.txt");
-}
-//
-//int main()
-//{
-//    convert_all();
-//}
