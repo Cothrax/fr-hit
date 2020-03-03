@@ -17,6 +17,7 @@ using namespace std;
 typedef vector<pair<bit64_t, bit64_t> > StatVector;
 const char default_hits_fn[20] = "hits.dat";
 const char default_matches_fn[20] = "matches.dat";
+const bit64_t FLAG = -1;
 
 bit64_t transform(bit64_t read_id, bit64_t read_loc, bit64_t if_reversed = 0);
 void inv_transform(bit64_t val, ref_id_t &read_id, ref_loc_t &read_loc, bool &if_reversed);
@@ -57,6 +58,7 @@ public:
     {
 //        match_size.push_back(hit_history[cand_id].size());
         for(int i = 0; i < hit_history[cand_id].size(); i++) match_vec.push_back(hit_vec[hit_history[cand_id][i]]);
+        match_vec.push_back(make_pair(FLAG, FLAG));
     }
     void push_back_vector()
     {
@@ -96,7 +98,7 @@ public:
     bool next_pair(bit64_t &read_val, bit64_t &ref_val);
     void convert(DataHolder &ref, DataHolder &reads, const char *output_fn);
     void convert_verbose(DataHolder &ref, DataHolder &reads, const char *output_fn);
-    void convert_hollSow(DataHolder &ref, DataHolder &reads, const char *output_fn);
+    void convert_hollow(DataHolder &ref, DataHolder &reads, const char *output_fn);
 };
 
 #endif //LIBJPEG_STAT_H

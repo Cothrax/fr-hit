@@ -66,6 +66,7 @@ void StatIO::write(ofstream &fout, StatVector &vec, bit64_t size)
 
 void StatIO::flush(bit64_t batch_size)
 {
+    random_shuffle(hit_vec.begin(), hit_vec.end());
     write(fout_hit, hit_vec, batch_size);
     write(fout_match, match_vec, match_vec.size());
 
@@ -246,6 +247,7 @@ void StatConverter::convert(DataHolder &ref, DataHolder &reads, const char *outp
 
     while(next_pair(read_val, ref_val))
     {
+        if(read_val == FLAG) { fout << "0 0" << endl; continue; }
 //        cout << read_val << "\t" << ref_val << endl;
         inv_transform(read_val, id, loc, if_reversed);
         reads.get(reads_seq, id, loc, if_reversed);
@@ -271,15 +273,17 @@ void StatConverter::convert_hollow(DataHolder &ref, DataHolder &reads, const cha
 
     while(next_pair(read_val, ref_val))
     {
+        if(read_val == FLAG) { fout << "0 0" << endl; continue; }
 //        cout << read_val << "\t" << ref_val << endl;
         inv_transform(read_val, id, loc, if_reversed);
+//        if(loc > 11) cout << "in get: " << id << " " << loc << " " << if_reversed << endl;
         int ofs1 = reads.get_hollow(reads_seq, id, loc, if_reversed);
         inv_transform(ref_val, id, loc, if_reversed);
         int ofs2 = ref.get_hollow(ref_seq, id, loc, if_reversed);
 
 //        cout << reads_seq << " " << ref_seq << endl;
-        fout << ofs1 << " " << ofs2 << endl;
         fout << reads_seq << " " << ref_seq << endl;
+        fout << ofs1 << " " << ofs2 << endl;
     }
     fout.close();
 }

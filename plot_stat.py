@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
 
+
 def read_stat(fn):
     size = os.path.getsize(fn)
     print(fn, size)
@@ -40,11 +41,15 @@ def plot(matches_fn, hits_fn, fig_fn=None):
     plt.plot(matches_cum)
     plt.plot(hits_cum)
 
-    print('preserved matches: ',
-          matches_cum[np.searchsorted(hits_cum, 0.5)])
+    for ratio in [1/3, 1/2, 2/3]:
+        # print('ratio=', ratio, 'preserved matches: ',
+        #       matches_cum[np.searchsorted(hits_cum, ratio)])
+        idx = np.searchsorted(hits_cum, ratio)
+        print('r=%.2f,\ti=%d,\ts=%.4f' % (ratio, idx, matches_cum[idx]))
 
     plt.savefig(fig_fn)
-    plt.show()
+    # plt.show()
+
 
 if __name__ == '__main__':
     print('in', os.path.pardir)
