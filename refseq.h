@@ -35,6 +35,7 @@
 #include<fstream>
 
 #include "param.h"
+#include "filter.h"
 
 using namespace std;
 
@@ -92,6 +93,7 @@ struct KmerLoc
     bit32_t n;  // one kind of segment 
     ref_id_t *id;
     ref_loc_t *loc;
+    lshv_t *lsh;
 };
 
 class RefSeq

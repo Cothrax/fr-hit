@@ -44,6 +44,8 @@ using namespace std;
 
 extern Param param;
 extern bit8_t alphabet[];
+extern LSHFilter filter;
+RefLSHHolder holder;
 
 ref_loc_t RefSeq::LoadNextSeq(ifstream &fin)
 {
@@ -115,6 +117,7 @@ void RefSeq::BinSeq(OneBfa &a)
 // New added maskregion
 void RefSeq::UnmaskRegion()
 {
+    int start = _blocks.size();
     Block b;
 
     b.id=_count;
@@ -138,6 +141,10 @@ void RefSeq::UnmaskRegion()
             _blocks.push_back(b);
         }
     } // end while
+
+    bit32_t step(param.seed_size-param.seed_overlap);
+    for(int i = start; i < _blocks.size(); i++)
+        holder.push_back(filter, &_seq[_blocks[i].begin], _blocks[i].end - _blocks[i].begin, step);
 }
 
 // convert to binary seq
@@ -213,10 +220,11 @@ void RefSeq::AllocIndex()
 {
     KmerLoc *v = index;
     for (bit32_t j=0; j<total_kmers;j++,v++)
-        if (v->n>0) 
+        if (v->n>0)
         {
             v->id = new ref_id_t[v->n];
             v->loc = new ref_loc_t[v->n];
+            v->lsh = new lshv_t[v->n];
             v->n = 0;
         }
 }
@@ -236,7 +244,8 @@ void RefSeq::ReleaseIndex()
 void RefSeq::t_CreateIndex_ab() 
 {
     bit24_t *_m;
-    bit32_t i,b,temp_seed;
+    bit32_t i,b,temp_seed,j=0;
+    lshv_t *lsh;
 
     KmerLoc *z;
     bit32_t step(param.seed_size-param.seed_overlap);
@@ -244,6 +253,7 @@ void RefSeq::t_CreateIndex_ab()
     for (vector<Block>::iterator p=_blocks.begin(); p!=_blocks.end(); p++) 
     {
         _m = bfa[p->id].s;
+        lsh = holder.blocks[j++];
 
         for (i=p->begin; i< (p->end - param.seed_size + 1); i+=step) 
         { 
@@ -252,6 +262,7 @@ void RefSeq::t_CreateIndex_ab()
             z = index + temp_seed;
             z->loc[z->n] = i;
             z->id[z->n] = p->id;
+            z->lsh[z->n] = *(lsh++);
             z->n++;
         }
 
@@ -264,6 +275,7 @@ void RefSeq::t_CreateIndex_ab()
             z = index + temp_seed;
             z->loc[z->n] = i;
             z->id[z->n] = p->id;
+            z->lsh[z->n] = *(lsh++);
             z->n++;
         }
     }
@@ -277,5 +289,6 @@ void RefSeq::CreateIndex()
     t_CalKmerFreq_ab();
     AllocIndex();
     t_CreateIndex_ab();
+    holder.clear();
 }
 

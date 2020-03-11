@@ -39,6 +39,7 @@
 #include "align.h"
 #include "param.h"
 #include "utilities.h"
+#include "filter.h"
 
 std::string refseqFile; 
 std::string outAlignFile; 
@@ -50,6 +51,16 @@ std::ofstream fout;
 RefSeq ref;
 Param param;
 ReadClass readA;
+LSHFilter filter;
+
+void init_filter()
+{
+    int k = 2, nbits = 32, density = 6;
+    RandomProjectionGenerator generator(k, nbits, density);
+    generator.init();
+    filter._seed_size = param.seed_size;
+    filter.load_projection(generator);
+}
 
 // Recruitment
 unsigned int DoReadAlign() {

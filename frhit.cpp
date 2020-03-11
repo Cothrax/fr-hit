@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
                 std::cerr << "fatal error: failed to open ref file\n";
                 exit(1);
         }
+        init_filter();
         ref.Run_ConvertBinseq(finDB);
         std::cerr << "Load in " 
                   << ref.total_num 
