@@ -98,7 +98,7 @@ lshv_t LSHFilter::lsh(char *seq, int seq_len)
 }
 
 
-void LSHFilter::calc_all_lsh(char *seq, int seq_len, lshv_t *res)
+void LSHFilter::calc_all_lsh(const char *seq, int seq_len, lshv_t *res)
 {
     int key = 0, rbound = seq_len - (_seed_size<<1), p;
     int vec[nkmer], acc[nbits];
@@ -126,7 +126,7 @@ void LSHFilter::calc_all_lsh(char *seq, int seq_len, lshv_t *res)
         else res[i] = res[i+(_seed_size<<1)-1];
 }
 
-void LSHFilter::calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res)
+void LSHFilter::calc_seq_lsh(const char *seq, int seq_len, int seed_step, lshv_t *res)
 {
     int key = 0, cnt = 0, rbound = seq_len - (_seed_size<<1);
     lshv_t val = ((bit64_t)1<<nbits)-1;
@@ -144,7 +144,7 @@ void LSHFilter::calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res)
     }
 
     res[cnt++] = val;
-    for(int i = 1; i < seq_len; i++)
+    for(int i = 1; i < seq_len - _seed_size + 1; i++)
     {
         if(i > _seed_size && i <= rbound)
         {
@@ -162,7 +162,8 @@ void LSHFilter::calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res)
         if(i % seed_step == 0) res[cnt++] = val;
     }
 
-    if(seq_len % seed_step) res[cnt++] = val;
+    if((seq_len - _seed_size) % seed_step) res[cnt++] = val;
+    printf("cnt: %d\n", cnt);
 }
 
 lshv_t LSHFilter::hollow_lsh(char *seq, int seq_len, int begin)
@@ -254,6 +255,12 @@ void ProjectionGenerator::compress_vector()
     }
 }
 
+void ProjectionGenerator::init()
+{
+    generate();
+    compress_vector();
+}
+
 // -------------------- RandomProjectionGenerator --------------------
 void RandomProjectionGenerator::rand_proj(int seed, int *a_vec)
 {
@@ -275,6 +282,24 @@ void RandomProjectionGenerator::generate()
         vec[i] = new int [_nbits];
         rand_proj(i, vec[i]);
     }
+}
+
+// -------------------- RefLSHHolder --------------------
+RefLSHHolder::RefLSHHolder() {}
+void RefLSHHolder::clear()
+{
+    for(int i = 0; i < blocks.size(); i++) delete [] blocks[i];
+    blocks.resize(0);
+}
+
+void RefLSHHolder::push_back(LSHFilter &filter, const char *seq, int seq_len, int seed_step)
+{
+    printf("seq_len = %d, seed_step = %d\n", seq_len, seed_step);
+    lshv_t *block = new lshv_t[seq_len/seed_step + 1];
+//    printf("lsh: %d\t(%d %d)\n", seq_len/seed_step+2, seq_len, seed_step);
+
+    filter.calc_seq_lsh(seq, seq_len, seed_step, block);
+    blocks.push_back(block);
 }
 
 /*

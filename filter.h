@@ -5,6 +5,8 @@
 #ifndef LIBJPEG_FILTER_H
 #define LIBJPEG_FILTER_H
 
+#include<string>
+#include<vector>
 #include "param.h"
 typedef bit64_t lshv_t;
 
@@ -21,6 +23,7 @@ public:
     virtual ~ProjectionGenerator();
     virtual void generate() = 0;
     virtual void dump(const char *filename);
+    virtual void init();
 };
 
 class RandomProjectionGenerator: public ProjectionGenerator
@@ -53,20 +56,26 @@ protected:
     }
 
 public:
-    int k, nbits, total, nkmer, _seed_size, frag_len;
+    int k, nbits, total, nkmer, _seed_size, frag_len, limit;
     explicit LSHFilter(int seed_size = 11);
     ~LSHFilter();
     void load_projection(const char *filename);
     void load_projection(ProjectionGenerator &generator);
     lshv_t lsh(char *seq, int seq_len);
     lshv_t hollow_lsh(char *seq, int seq_len, int begin);
-    void calc_all_lsh(char *seq, int seq_len, lshv_t *res);
-    void calc_seq_lsh(char *seq, int seq_len, int seed_step, lshv_t *res);
+    void calc_all_lsh(const char *seq, int seq_len, lshv_t *res);
+    void calc_seq_lsh(const char *seq, int seq_len, int seed_step, lshv_t *res);
 };
 
 class RefLSHHolder
 {
-
+public:
+    std::vector<lshv_t *> blocks;
+    RefLSHHolder();
+    ~RefLSHHolder() {clear(); };
+    void clear();
+    void push_back(LSHFilter &filter, const char *seq, int seq_len, int seed_step);
+//    void push_back(LSHFilter &filter, std::string seq, int seq_begin, int seq_end, int seed_step);
 };
 
 #endif //LIBJPEG_FILTER_H
