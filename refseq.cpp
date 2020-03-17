@@ -154,6 +154,7 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin)
     RefTitle r;
     _count = 0; 
     total_num = sum_length = 0;
+    max_read_length = 0;
 
     while (LoadNextSeq(fin))
     {
@@ -170,6 +171,7 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin)
         _count++;
         total_num++;
         sum_length+=_length;
+        max_read_length = max(max_read_length, (bit64_t)_length);
     }
 
     _seq.clear(); //free ram

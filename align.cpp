@@ -35,7 +35,7 @@
 using namespace std;
 
 extern LSHFilter filter;
-int limit = 9;
+int limit = 6;
 
 extern bit8_t alphabet[];
 
@@ -214,14 +214,17 @@ void ReadAlign::DoBatch(RefSeq &ref, ReadClass &readA, ifstream &finRead, ofstre
     bit32_t naligned(0);
     vector<ReadInf>::iterator _pread;
     WorkingPara wp;
+    Merger merger;
 
     int morereads(1);
     int iam=0;
     int np=1;
 
     // Parallel entry point
-#pragma omp parallel private(_pread, wp)
+#pragma omp parallel private(_pread, wp, merger)
     {
+        merger.init(param.seed_size, ref.total_num, ref.max_read_length);
+
 #if defined (_OPENMP)
         iam = omp_get_thread_num();
 #pragma omp single
@@ -262,7 +265,7 @@ void ReadAlign::DoBatch(RefSeq &ref, ReadClass &readA, ifstream &finRead, ofstre
                         if (ConvertBinaySeq(_pread, wp) == 0)
                         { 
                             GenerateSeeds(_pread->length, wp);
-                            if (AlignProcess(ref, _pread, str_align[iam], wp)) naligned++;
+                            if (AlignProcess(ref, _pread, str_align[iam], wp, merger)) naligned++;
                         }
                     }
                 }
@@ -384,12 +387,13 @@ void ReadAlign::GenerateSeeds(int _read_length, WorkingPara &wp)
 }
 
 // OOP redo
-void ReadAlign::AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t *seeds, vector<bit64_t> &Ahit, const char *read_seq)
+void ReadAlign::AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t *seeds, vector<bit64_t> &Ahit, const char *read_seq, Merger &merger)
 {
     lshv_t seq_lsh[_read_length];
     filter.calc_all_lsh(read_seq, _read_length, seq_lsh);
 
     int temp_loc;
+//    bool flg;
 
     bit32_t m,j,seed;
     bit64_t Ta_hit;
@@ -404,6 +408,7 @@ void ReadAlign::AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t
     for(int i=0; i<snum; i+=seedstep)
     {
         seed = seeds[i]; // bit32_t
+//        flg = i >= param.seed_size && i <= _read_length - param.seed_size;
 
         if ((m=ref.index[seed].n) == 0) continue; //no match
 
@@ -415,15 +420,17 @@ void ReadAlign::AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t
         for (j=0; j!= m; j++)
         {
             if(__builtin_popcount(_lsh[j] ^ seq_lsh[i]) > limit) continue;
-            // Seed location
-            _hit.chr = _refid[j]; 
-            // Start position of possible alignment to read
-            temp_loc = _refloc[j] - i;
-            // Beyond the boundary( ref: 0)
-            _hit.loc = temp_loc >= 0 ? temp_loc : 0;
-            // Load refid and location in one 64 bit
-            Ta_hit = ((bit64_t)_refid[j]<<32)|_hit.loc;
-            Ahit.push_back(Ta_hit);
+            merger.push_back(_refid[j], _refloc[j] > i ? _refloc[j] - i : 0);
+
+//            // Seed location
+//            _hit.chr = _refid[j];
+//            // Start position of possible alignment to read
+//            temp_loc = _refloc[j] - i;
+//            // Beyond the boundary( ref: 0)
+//            _hit.loc = temp_loc >= 0 ? temp_loc : 0;
+//            // Load refid and location in one 64 bit
+//            Ta_hit = ((bit64_t)_refid[j]<<32)|_hit.loc;
+//            Ahit.push_back(Ta_hit);
         } 
     }
 }
@@ -538,7 +545,7 @@ void ReadAlign::CreateFourmers(char *iseqquery, int _read_length, WorkingPara &w
 }
 
 // Main filtering and alignment part 
-int ReadAlign::AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, string &os, WorkingPara &wp) 
+int ReadAlign::AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, string &os, WorkingPara &wp, Merger &merger)
 {
     // e-value
     int eHSP = expectedHSPlength(mink,_pread->length,ref.sum_length,Hh);
@@ -599,23 +606,29 @@ int ReadAlign::AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, stri
     // Alignment and 4 mers counting
     len = _pread->length;
 
+    // tell merger read length
+    merger.set_read_length(len);
+
     // 0:both; 1:direct only; 2:complementary only. default=0 direct chain
     if ((0 == param.chains) ||(1 == param.chains))
     {
-        AhitCollect(_pread->length, seedstep, ref,  wp.seeds, wp.Ahit, wp.iseqquery);
+        AhitCollect(_pread->length, seedstep, ref,  wp.seeds, wp.Ahit, wp.iseqquery, merger);
 
-        // get alignment candidates
-        if (wp.Ahit.size() > 1)
-        {
-            sort(wp.Ahit.begin(),wp.Ahit.end());
-            tcc = wp.Ahit[0];
-            HitcansCollect(tcc, ref, _pread->length, wp);
-        }
+//        vector<Hit_Can> tmp;
+        merger.run(wp.perfect_hit, ref);
 
-        wp.Ahit.resize(0); // Release memory
-        MergeAdjoiningBlock(wp); // Merge adjoining blocks
-        wp._hit_Cans.resize(0); 
-
+//        // get alignment candidates
+//        if (wp.Ahit.size() > 1)
+//        {
+//            sort(wp.Ahit.begin(),wp.Ahit.end());
+//            tcc = wp.Ahit[0];
+//            HitcansCollect(tcc, ref, _pread->length, wp);
+//        }
+//
+//        wp.Ahit.resize(0); // Release memory
+//        MergeAdjoiningBlock(wp); // Merge adjoining blocks
+//        wp._hit_Cans.resize(0);
+//
         // get 4-mers value of query
         CreateFourmers(wp.iseqquery, _pread->length, wp);
 
@@ -788,19 +801,20 @@ int ReadAlign::AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, stri
     //complementary chain | done
     if ((0 == param.chains) || (2 == param.chains))
     {
-        AhitCollect(_pread->length, seedstep, ref, wp.cseeds, wp.Ahit, wp.ciseqquery);
+        AhitCollect(_pread->length, seedstep, ref, wp.cseeds, wp.Ahit, wp.ciseqquery, merger);
+        merger.run(wp.perfect_hit, ref);
 
-        // get alignment candidates
-        if (wp.Ahit.size() > 1)
-        {
-            sort(wp.Ahit.begin(),wp.Ahit.end());//sort Ahit
-            tcc = wp.Ahit[0];
-            HitcansCollect(tcc, ref, _pread->length, wp);
-        }// end get alignment candidates
-
-        wp.Ahit.resize(0);//release initial seeds hits vector memory
-        MergeAdjoiningBlock(wp);// Merge adjoining blocks
-        wp._hit_Cans.resize(0);
+//        // get alignment candidates
+//        if (wp.Ahit.size() > 1)
+//        {
+//            sort(wp.Ahit.begin(),wp.Ahit.end());//sort Ahit
+//            tcc = wp.Ahit[0];
+//            HitcansCollect(tcc, ref, _pread->length, wp);
+//        }// end get alignment candidates
+//
+//        wp.Ahit.resize(0);//release initial seeds hits vector memory
+//        MergeAdjoiningBlock(wp);// Merge adjoining blocks
+//        wp._hit_Cans.resize(0);
         // Get 4-mers value of query
         CreateFourmers(wp.ciseqquery, _pread->length, wp);
 

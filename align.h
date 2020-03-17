@@ -39,6 +39,7 @@
 #include "reads.h"
 #include "refseq.h"
 #include "utilities.h"
+#include "merger.h"
 
 //#define DEBUG
 
@@ -127,26 +128,26 @@ struct Hit
 };
 
 // Candidate alignment location
-struct Hit_Can
-{
-
-    Hit_Can()
-    {
-        chr = 0;
-        _end = 0;
-        _begin = 0;
-    }
-
-    // Index of ref
-    ref_id_t chr;
-
-    // Location of alignment end
-    ref_loc_t _end; 
-
-    // Location of alignment begin
-    ref_loc_t _begin;   
-
-};
+//struct Hit_Can
+//{
+//
+//    Hit_Can()
+//    {
+//        chr = 0;
+//        _end = 0;
+//        _begin = 0;
+//    }
+//
+//    // Index of ref
+//    ref_id_t chr;
+//
+//    // Location of alignment end
+//    ref_loc_t _end;
+//
+//    // Location of alignment begin
+//    ref_loc_t _begin;
+//
+//};
 
 // 4-mers sorting
 struct MerSort
@@ -311,11 +312,11 @@ class ReadAlign
 
         //void DoBatch(RefSeq &ref);
         int ConvertBinaySeq(vector<ReadInf>::iterator &_pread, WorkingPara &wp);
-        int AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, string &os, WorkingPara &wp);
+        int AlignProcess(RefSeq &ref, vector<ReadInf>::iterator &_pread, string &os, WorkingPara &wp, Merger &merger);
         int diag_test_aapn_est_circular(char iseq2[], int len1, int len2, int &best_sum, int &band_left, int &band_right, WorkingPara &wp);
         int local_band_align2(char iseq1[], char iseq2[], int len1, int len2, int &best_score, int band_left, int band_right, int *talign_info, int &iden_no, int &alnln, WorkingPara &wp);
 
-        void AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t *seeds, vector<bit64_t> &Ahit, const char *read_seq);
+        void AhitCollect(int _read_length, int seedstep, RefSeq &ref, bit32_t *seeds, vector<bit64_t> &Ahit, const char *read_seq, Merger &merger);
         // Extract info from Ahit to _hit_Cans
         void HitcansCollect(bit64_t tcc, RefSeq &ref, int _read_length, WorkingPara &wp);
         // Operate on _hit_Cans and perfect_hit

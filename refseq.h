@@ -117,6 +117,7 @@ class RefSeq
         int total_num;             //number of sequences//should use ref_id_t type
 
         bit64_t sum_length;        //total length of all sequences
+        bit64_t max_read_length;
 
         vector<OneBfa> bfa;        //transform _seq to binary sequences, then _seq is released
         vector<Block> _blocks;     //unmasked ref region, id is subscript of bfa
